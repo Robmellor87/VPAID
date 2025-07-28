@@ -19,9 +19,14 @@
   VPAIDAd.prototype.initAd = function(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
     this.width = width;
     this.height = height;
-    // Correct slot reference
-    this.slot = environmentVars.slot;
+    // Support both slot naming conventions
+    this.slot = environmentVars.slot || environmentVars.adSlot;
     this.videoSlot = environmentVars.videoSlot;
+
+    console.log('VPAIDAd initAd:', {width, height, viewMode, desiredBitrate, creativeData});
+
+    // Notify loaded immediately
+    this._emitEvent('AdLoaded');
 
     // Create interactive container
     var container = document.createElement('div');
@@ -65,10 +70,8 @@
 
     container.appendChild(input);
     container.appendChild(button);
-    // Attach to correct slot
+    // Attach to slot
     if (this.slot) this.slot.appendChild(container);
-
-    this._emitEvent('AdLoaded');
   };
 
   VPAIDAd.prototype.startAd = function() {
@@ -136,7 +139,7 @@
   VPAIDAd.prototype.setAdVolume = function(v) { if (this.videoSlot) this.videoSlot.volume = v; };
   VPAIDAd.prototype.getAdIcons = function() { return []; };
 
-  /*** EVENTS ***/
+  /*** SUBSCRIBE/UNSUBSCRIBE ***/
   VPAIDAd.prototype.subscribe = function(e, cb) {
     this.events[e] = this.events[e] || [];
     this.events[e].push(cb);
@@ -148,9 +151,10 @@
 
   /*** INTERNAL ***/
   VPAIDAd.prototype._emitEvent = function(eventType) {
+    console.log('VPAIDAd event:', eventType);
     (this.events[eventType] || []).forEach(function(fn) { fn(); });
   };
 
-  // Expose
+  // Expose factory
   window.getVPAIDAd = function() { return new VPAIDAd(); };
 })(window);
