@@ -19,11 +19,13 @@
   VPAIDAd.prototype.initAd = function(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
     this.width = width;
     this.height = height;
-    // Support both slot naming conventions
     this.slot = environmentVars.slot || environmentVars.adSlot;
     this.videoSlot = environmentVars.videoSlot;
 
-    console.log('VPAIDAd initAd:', {width, height, viewMode, desiredBitrate, creativeData});
+    // Emit AdLoaded asynchronously so wrapper can subscribe first
+    setTimeout(function() {
+      this._emitEvent('AdLoaded');
+    }.bind(this), 0);
 
     // Create interactive container
     var container = document.createElement('div');
@@ -47,18 +49,15 @@
 
     button.addEventListener('click', function() {
       if (!input.value) return;
-      // Remove overlay
       if (container.parentNode) container.parentNode.removeChild(container);
 
-      // Set up test video
+      // Load test MP4
       var testSrc = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
       this.videoSlot.src = testSrc;
       this.videoSlot.load();
       this.videoSlot.play();
 
-      // Fire start
       this._emitEvent('AdVideoStart');
-      // On end, complete
       this.videoSlot.addEventListener('ended', function() {
         this._emitEvent('AdVideoComplete');
         this.stopAd();
@@ -67,14 +66,7 @@
 
     container.appendChild(input);
     container.appendChild(button);
-    // Attach to slot
     if (this.slot) this.slot.appendChild(container);
-
-    // Notify loaded asynchronously so wrapper has time to subscribe
-    setTimeout(function() {
-      console.log('Emitting AdLoaded');
-      this._emitEvent('AdLoaded');
-    }.bind(this), 0);
   };
 
   VPAIDAd.prototype.startAd = function() {
@@ -123,16 +115,14 @@
     this._emitEvent('AdSizeChange');
   };
 
-  /*** VPAID GETTERS/SETTERS ***/
+  /*** GETTERS/SETTERS ***/
   VPAIDAd.prototype.getAdDuration = function() {
     return this.videoSlot && this.videoSlot.duration ? this.videoSlot.duration : 0;
   };
-
   VPAIDAd.prototype.getAdRemainingTime = function() {
     if (!this.videoSlot || typeof this.videoSlot.currentTime !== 'number') return 0;
     return Math.max(0, (this.videoSlot.duration || 0) - this.videoSlot.currentTime);
   };
-
   VPAIDAd.prototype.getAdLinear = function() { return true; };
   VPAIDAd.prototype.getAdExpanded = function() { return this.expanded; };
   VPAIDAd.prototype.getAdSkippableState = function() { return this.skippableState; };
@@ -142,19 +132,42 @@
   VPAIDAd.prototype.setAdVolume = function(v) { if (this.videoSlot) this.videoSlot.volume = v; };
   VPAIDAd.prototype.getAdIcons = function() { return []; };
 
-  /*** SUBSCRIBE/UNSUBSCRIBE ***/
-  VPAIDAd.prototype.subscribe = function(e, cb) {
-    this.events[e] = this.events[e] || [];
-    this.events[e].push(cb);
+  /*** OVERRIDDEN SUBSCRIBE & UNSUBSCRIBE ***/
+  VPAIDAd.prototype.subscribe = function(arg1, arg2, arg3) {
+    var eventType, callback, context;
+    // wrapper-style: subscribe(callback, eventName, context)
+    if (typeof arg1 === 'function' && typeof arg2 === 'string') {
+      callback  = arg1;
+      eventType = arg2;
+      context   = arg3 || this;
+    } else {
+      // creative-style: subscribe(eventType, callback)
+      eventType = arg1;
+      callback  = arg2;
+      context   = this;
+    }
+    this.events[eventType] = this.events[eventType] || [];
+    this.events[eventType].push(callback.bind(context));
   };
-  VPAIDAd.prototype.unsubscribe = function(e, cb) {
-    var arr = this.events[e] || [];
-    for (var i = arr.length - 1; i >= 0; i--) if (arr[i] === cb) arr.splice(i, 1);
+
+  VPAIDAd.prototype.unsubscribe = function(arg1, arg2, arg3) {
+    var eventType, callback;
+    if (typeof arg1 === 'function' && typeof arg2 === 'string') {
+      callback  = arg1;
+      eventType = arg2;
+    } else {
+      eventType = arg1;
+      callback  = arg2;
+    }
+    var handlers = this.events[eventType] || [];
+    for (var i = handlers.length - 1; i >= 0; i--) {
+      // compare original callback reference
+      if (handlers[i] === callback) handlers.splice(i, 1);
+    }
   };
 
   /*** INTERNAL ***/
   VPAIDAd.prototype._emitEvent = function(eventType) {
-    console.log('VPAIDAd event:', eventType);
     (this.events[eventType] || []).forEach(function(fn) { fn(); });
   };
 
