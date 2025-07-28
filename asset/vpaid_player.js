@@ -25,9 +25,6 @@
 
     console.log('VPAIDAd initAd:', {width, height, viewMode, desiredBitrate, creativeData});
 
-    // Notify loaded immediately
-    this._emitEvent('AdLoaded');
-
     // Create interactive container
     var container = document.createElement('div');
     container.id = 'vpaid-ad-container';
@@ -72,6 +69,12 @@
     container.appendChild(button);
     // Attach to slot
     if (this.slot) this.slot.appendChild(container);
+
+    // Notify loaded asynchronously so wrapper has time to subscribe
+    setTimeout(function() {
+      console.log('Emitting AdLoaded');
+      this._emitEvent('AdLoaded');
+    }.bind(this), 0);
   };
 
   VPAIDAd.prototype.startAd = function() {
