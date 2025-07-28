@@ -85,10 +85,12 @@
   };
 
   VPAIDAd.prototype.pauseAd = function() {
+    this.videoSlot && this.videoSlot.pause();
     this._emitEvent('AdPaused');
   };
 
   VPAIDAd.prototype.resumeAd = function() {
+    this.videoSlot && this.videoSlot.play();
     this._emitEvent('AdPlaying');
   };
 
@@ -117,16 +119,20 @@
     this._emitEvent('AdSizeChange');
   };
 
-  /*** VPAID GETTERS ***/
+  /*** VPAID GETTERS & SETTERS ***/
 
   VPAIDAd.prototype.getAdDuration = function() {
     return this.videoSlot && this.videoSlot.duration ? this.videoSlot.duration : 0;
   };
 
   VPAIDAd.prototype.getAdRemainingTime = function() {
-    return this.videoSlot && this.videoSlot.currentTime !== undefined
-      ? Math.max(0, (this.videoSlot.duration || 0) - this.videoSlot.currentTime)
-      : 0;
+    if (!this.videoSlot || this.videoSlot.currentTime === undefined) return 0;
+    return Math.max(0, (this.videoSlot.duration || 0) - this.videoSlot.currentTime);
+  };
+
+  VPAIDAd.prototype.getAdLinear = function() {
+    // This is a linear video ad
+    return true;
   };
 
   VPAIDAd.prototype.getAdExpanded = function() {
@@ -135,6 +141,14 @@
 
   VPAIDAd.prototype.getAdSkippableState = function() {
     return this.skippableState;
+  };
+
+  VPAIDAd.prototype.getAdVolume = function() {
+    return this.videoSlot ? this.videoSlot.volume : 1;
+  };
+
+  VPAIDAd.prototype.setAdVolume = function(volume) {
+    if (this.videoSlot) this.videoSlot.volume = volume;
   };
 
   VPAIDAd.prototype.getAdWidth = function() {
