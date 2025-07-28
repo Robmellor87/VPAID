@@ -115,7 +115,7 @@
     this._emitEvent('AdSizeChange');
   };
 
-  *** GETTERS/SETTERS ***/
+  /*** GETTERS/SETTERS ***/
   VPAIDAd.prototype.getAdDuration = function() {
     return this.videoSlot && this.videoSlot.duration ? this.videoSlot.duration : 0;
   };
