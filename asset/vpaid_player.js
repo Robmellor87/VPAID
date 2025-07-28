@@ -1,7 +1,7 @@
 // vpaid_player.js
 (function(window) {
   // VPAID creative object
-  var VPAIDAd = function() {
+  function VPAIDAd() {
     this.events = {};
     this.slot = null;
     this.videoSlot = null;
@@ -9,10 +9,9 @@
     this.height = 0;
     this.expanded = false;
     this.skippableState = false;
-  };
+  }
 
   /*** VPAID REQUIRED INTERFACE ***/
-
   VPAIDAd.prototype.handshakeVersion = function(version) {
     return '2.0';
   };
@@ -20,10 +19,11 @@
   VPAIDAd.prototype.initAd = function(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
     this.width = width;
     this.height = height;
-    this.slot = environmentVars.adSlot;
+    // Correct slot reference
+    this.slot = environmentVars.slot;
     this.videoSlot = environmentVars.videoSlot;
 
-    // Container for interactive UI
+    // Create interactive container
     var container = document.createElement('div');
     container.id = 'vpaid-ad-container';
     Object.assign(container.style, {
@@ -32,7 +32,7 @@
       backgroundSize: 'cover', backgroundImage: 'url(http://background.jpg)'
     });
 
-    // Input field
+    // Input prompt
     var input = document.createElement('textarea');
     input.id = 'vpaid-input';
     input.placeholder = 'Describe your perfect burger';
@@ -45,20 +45,18 @@
 
     button.addEventListener('click', function() {
       if (!input.value) return;
-      // Remove interactive overlay
-      var c = document.getElementById('vpaid-ad-container');
-      if (c && c.parentNode) c.parentNode.removeChild(c);
+      // Remove overlay
+      if (container.parentNode) container.parentNode.removeChild(container);
 
-      // Load test MP4 into video slot
+      // Set up test video
       var testSrc = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
       this.videoSlot.src = testSrc;
       this.videoSlot.load();
       this.videoSlot.play();
 
-      // Emit video start event
+      // Fire start
       this._emitEvent('AdVideoStart');
-
-      // Listen for video end
+      // On end, complete
       this.videoSlot.addEventListener('ended', function() {
         this._emitEvent('AdVideoComplete');
         this.stopAd();
@@ -67,9 +65,9 @@
 
     container.appendChild(input);
     container.appendChild(button);
-    this.slot.appendChild(container);
+    // Attach to correct slot
+    if (this.slot) this.slot.appendChild(container);
 
-    // Notify loaded
     this._emitEvent('AdLoaded');
   };
 
@@ -85,12 +83,12 @@
   };
 
   VPAIDAd.prototype.pauseAd = function() {
-    this.videoSlot && this.videoSlot.pause();
+    if (this.videoSlot) this.videoSlot.pause();
     this._emitEvent('AdPaused');
   };
 
   VPAIDAd.prototype.resumeAd = function() {
-    this.videoSlot && this.videoSlot.play();
+    if (this.videoSlot) this.videoSlot.play();
     this._emitEvent('AdPlaying');
   };
 
@@ -108,7 +106,7 @@
     this._emitEvent('AdSkipped');
   };
 
-  VPAIDAd.prototype.resizeAd = function(width, height, viewMode) {
+  VPAIDAd.prototype.resizeAd = function(width, height) {
     this.width = width;
     this.height = height;
     var c = document.getElementById('vpaid-ad-container');
@@ -119,72 +117,40 @@
     this._emitEvent('AdSizeChange');
   };
 
-  /*** VPAID GETTERS & SETTERS ***/
-
+  /*** VPAID GETTERS/SETTERS ***/
   VPAIDAd.prototype.getAdDuration = function() {
     return this.videoSlot && this.videoSlot.duration ? this.videoSlot.duration : 0;
   };
 
   VPAIDAd.prototype.getAdRemainingTime = function() {
-    if (!this.videoSlot || this.videoSlot.currentTime === undefined) return 0;
+    if (!this.videoSlot || typeof this.videoSlot.currentTime !== 'number') return 0;
     return Math.max(0, (this.videoSlot.duration || 0) - this.videoSlot.currentTime);
   };
 
-  VPAIDAd.prototype.getAdLinear = function() {
-    // This is a linear video ad
-    return true;
+  VPAIDAd.prototype.getAdLinear = function() { return true; };
+  VPAIDAd.prototype.getAdExpanded = function() { return this.expanded; };
+  VPAIDAd.prototype.getAdSkippableState = function() { return this.skippableState; };
+  VPAIDAd.prototype.getAdWidth = function() { return this.width; };
+  VPAIDAd.prototype.getAdHeight = function() { return this.height; };
+  VPAIDAd.prototype.getAdVolume = function() { return this.videoSlot ? this.videoSlot.volume : 1; };
+  VPAIDAd.prototype.setAdVolume = function(v) { if (this.videoSlot) this.videoSlot.volume = v; };
+  VPAIDAd.prototype.getAdIcons = function() { return []; };
+
+  /*** EVENTS ***/
+  VPAIDAd.prototype.subscribe = function(e, cb) {
+    this.events[e] = this.events[e] || [];
+    this.events[e].push(cb);
   };
-
-  VPAIDAd.prototype.getAdExpanded = function() {
-    return this.expanded;
-  };
-
-  VPAIDAd.prototype.getAdSkippableState = function() {
-    return this.skippableState;
-  };
-
-  VPAIDAd.prototype.getAdVolume = function() {
-    return this.videoSlot ? this.videoSlot.volume : 1;
-  };
-
-  VPAIDAd.prototype.setAdVolume = function(volume) {
-    if (this.videoSlot) this.videoSlot.volume = volume;
-  };
-
-  VPAIDAd.prototype.getAdWidth = function() {
-    return this.width;
-  };
-
-  VPAIDAd.prototype.getAdHeight = function() {
-    return this.height;
-  };
-
-  VPAIDAd.prototype.getAdIcons = function() {
-    return [];
-  };
-
-  /*** SUBSCRIBE/UNSUBSCRIBE ***/
-
-  VPAIDAd.prototype.subscribe = function(eventType, callback) {
-    this.events[eventType] = this.events[eventType] || [];
-    this.events[eventType].push(callback);
-  };
-
-  VPAIDAd.prototype.unsubscribe = function(eventType, callback) {
-    var handlers = this.events[eventType] || [];
-    for (var i = handlers.length - 1; i >= 0; i--) {
-      if (handlers[i] === callback) handlers.splice(i, 1);
-    }
+  VPAIDAd.prototype.unsubscribe = function(e, cb) {
+    var arr = this.events[e] || [];
+    for (var i = arr.length - 1; i >= 0; i--) if (arr[i] === cb) arr.splice(i, 1);
   };
 
   /*** INTERNAL ***/
   VPAIDAd.prototype._emitEvent = function(eventType) {
-    (this.events[eventType] || []).forEach(function(cb) { cb(); });
+    (this.events[eventType] || []).forEach(function(fn) { fn(); });
   };
 
-  // Expose factory
-  window.getVPAIDAd = function() {
-    return new VPAIDAd();
-  };
-
+  // Expose
+  window.getVPAIDAd = function() { return new VPAIDAd(); };
 })(window);
