@@ -4,91 +4,77 @@
   var VPAIDAd = function() {
     // VPAID-defined events
     this.events = {};
-    this.assets = {};
     this.slot = null;
     this.videoSlot = null;
-    this.attributes = {
-      companionSlots: []
-    };
-    this.startTime = null;
   };
 
   /*** VPAID METHODS ***/
 
   VPAIDAd.prototype.handshakeVersion = function(version) {
-    // Returns the supported VPAID version
     return '2.0';
   };
 
   VPAIDAd.prototype.initAd = function(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
-    // Save slot references
     this.slot = environmentVars.adSlot;
     this.videoSlot = environmentVars.videoSlot;
 
-    // Create a container div for the ad UI
+    // Container for interactive UI
     var container = document.createElement('div');
     container.id = 'vpaid-ad-container';
-    container.style.position = 'absolute';
-    container.style.top = '0';
-    container.style.left = '0';
-    container.style.width = width + 'px';
-    container.style.height = height + 'px';
-    container.style.zIndex = '9999';
-    container.style.backgroundSize = 'cover';
-    container.style.backgroundImage = 'url(http://background.jpg)';
+    Object.assign(container.style, {
+      position: 'absolute', top: '0', left: '0',
+      width: width + 'px', height: height + 'px', zIndex: '9999',
+      backgroundSize: 'cover', backgroundImage: 'url(http://background.jpg)'
+    });
 
-    // Create input box
+    // Input field
     var input = document.createElement('textarea');
     input.id = 'vpaid-input';
     input.placeholder = 'Describe your perfect burger';
-    input.style.width = '80%';
-    input.style.margin = '20px auto';
-    input.style.display = 'block';
+    Object.assign(input.style, { width: '80%', margin: '20px auto', display: 'block' });
 
-    // Create submit button
+    // Submit button
     var button = document.createElement('button');
     button.textContent = 'Submit';
-    button.style.display = 'block';
-    button.style.margin = '10px auto';
+    Object.assign(button.style, { display: 'block', margin: '10px auto' });
 
     button.addEventListener('click', function() {
-      var prompt = input.value;
-      if (!prompt) return;
-      // Fire API call as GET with user_prompt param
-      var url = 'https://imaginer.api/endpoint?user_prompt=' + encodeURIComponent(prompt);
-      fetch(url, { method: 'GET' })
-        .then(function(response) {
-          // After API call completes, signal ad complete
-          this._emitEvent('AdVideoComplete');
-          this.stopAd();
-        }.bind(this))
-        .catch(function(err) {
-          console.error('API call failed', err);
-          this.stopAd();
-        }.bind(this));
+      if (!input.value) return;
+      // Remove interactive overlay
+      container.parentNode.removeChild(container);
+
+      // Load test MP4 into video slot
+      var testSrc = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
+      this.videoSlot.src = testSrc;
+      this.videoSlot.load();
+      this.videoSlot.play();
+
+      // Emit video start event
+      this._emitEvent('AdVideoStart');
+
+      // When video ends, emit complete and stop
+      this.videoSlot.addEventListener('ended', function() {
+        this._emitEvent('AdVideoComplete');
+        this.stopAd();
+      }.bind(this));
     }.bind(this));
 
     container.appendChild(input);
     container.appendChild(button);
     this.slot.appendChild(container);
 
-    // Notify the ad unit is loaded
     this._emitEvent('AdLoaded');
   };
 
   VPAIDAd.prototype.startAd = function() {
-    // Ad has started, emit impression and start events
     this._emitEvent('AdImpression');
     this._emitEvent('AdStarted');
-    this._emitEvent('AdVideoStart');
   };
 
   VPAIDAd.prototype.stopAd = function() {
-    // Remove container UI
-    var container = document.getElementById('vpaid-ad-container');
-    if (container && container.parentNode) {
-      container.parentNode.removeChild(container);
-    }
+    // Clean-up container if still present
+    var c = document.getElementById('vpaid-ad-container');
+    if (c && c.parentNode) c.parentNode.removeChild(c);
     this._emitEvent('AdStopped');
   };
 
@@ -96,12 +82,9 @@
     this._emitEvent('AdSkipped');
   };
 
-  VPAIDAd.prototype.resizeAd = function(width, height, viewMode) {
-    var container = document.getElementById('vpaid-ad-container');
-    if (container) {
-      container.style.width = width + 'px';
-      container.style.height = height + 'px';
-    }
+  VPAIDAd.prototype.resizeAd = function(width, height) {
+    var c = document.getElementById('vpaid-ad-container');
+    if (c) { c.style.width = width + 'px'; c.style.height = height + 'px'; }
     this._emitEvent('AdSizeChange');
   };
 
@@ -133,13 +116,10 @@
     }
   };
 
-  /*** INTERNAL ***/
   VPAIDAd.prototype._emitEvent = function(eventType) {
-    var handlers = this.events[eventType] || [];
-    handlers.forEach(function(cb) { cb(); });
+    (this.events[eventType] || []).forEach(function(cb) { cb(); });
   };
 
-  // Expose getVPAIDAd
   window.getVPAIDAd = function() {
     return new VPAIDAd();
   };
