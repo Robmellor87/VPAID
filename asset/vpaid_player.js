@@ -115,7 +115,7 @@
     this._emitEvent('AdSizeChange');
   };
 
-  /*** GETTERS/SETTERS ***/
+  *** GETTERS/SETTERS ***/
   VPAIDAd.prototype.getAdDuration = function() {
     return this.videoSlot && this.videoSlot.duration ? this.videoSlot.duration : 0;
   };
@@ -131,8 +131,9 @@
   VPAIDAd.prototype.getAdVolume = function() { return this.videoSlot ? this.videoSlot.volume : 1; };
   VPAIDAd.prototype.setAdVolume = function(v) { if (this.videoSlot) this.videoSlot.volume = v; };
   VPAIDAd.prototype.getAdIcons = function() { return []; };
+  VPAIDAd.prototype.getAdCompanions = function() { return ''; };
 
-  /*** OVERRIDDEN SUBSCRIBE & UNSUBSCRIBE ***/
+  /*** OVERRIDDEN SUBSCRIBE ***/ & UNSUBSCRIBE ***/
   VPAIDAd.prototype.subscribe = function(arg1, arg2, arg3) {
     var eventType, callback, context;
     // wrapper-style: subscribe(callback, eventName, context)
