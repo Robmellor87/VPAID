@@ -2,19 +2,24 @@
 (function(window) {
   // VPAID creative object
   var VPAIDAd = function() {
-    // VPAID-defined events
     this.events = {};
     this.slot = null;
     this.videoSlot = null;
+    this.width = 0;
+    this.height = 0;
+    this.expanded = false;
+    this.skippableState = false;
   };
 
-  /*** VPAID METHODS ***/
+  /*** VPAID REQUIRED INTERFACE ***/
 
   VPAIDAd.prototype.handshakeVersion = function(version) {
     return '2.0';
   };
 
   VPAIDAd.prototype.initAd = function(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
+    this.width = width;
+    this.height = height;
     this.slot = environmentVars.adSlot;
     this.videoSlot = environmentVars.videoSlot;
 
@@ -41,7 +46,8 @@
     button.addEventListener('click', function() {
       if (!input.value) return;
       // Remove interactive overlay
-      container.parentNode.removeChild(container);
+      var c = document.getElementById('vpaid-ad-container');
+      if (c && c.parentNode) c.parentNode.removeChild(c);
 
       // Load test MP4 into video slot
       var testSrc = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
@@ -52,7 +58,7 @@
       // Emit video start event
       this._emitEvent('AdVideoStart');
 
-      // When video ends, emit complete and stop
+      // Listen for video end
       this.videoSlot.addEventListener('ended', function() {
         this._emitEvent('AdVideoComplete');
         this.stopAd();
@@ -63,6 +69,7 @@
     container.appendChild(button);
     this.slot.appendChild(container);
 
+    // Notify loaded
     this._emitEvent('AdLoaded');
   };
 
@@ -72,20 +79,9 @@
   };
 
   VPAIDAd.prototype.stopAd = function() {
-    // Clean-up container if still present
     var c = document.getElementById('vpaid-ad-container');
     if (c && c.parentNode) c.parentNode.removeChild(c);
     this._emitEvent('AdStopped');
-  };
-
-  VPAIDAd.prototype.skipAd = function() {
-    this._emitEvent('AdSkipped');
-  };
-
-  VPAIDAd.prototype.resizeAd = function(width, height) {
-    var c = document.getElementById('vpaid-ad-container');
-    if (c) { c.style.width = width + 'px'; c.style.height = height + 'px'; }
-    this._emitEvent('AdSizeChange');
   };
 
   VPAIDAd.prototype.pauseAd = function() {
@@ -97,12 +93,63 @@
   };
 
   VPAIDAd.prototype.expandAd = function() {
+    this.expanded = true;
     this._emitEvent('AdExpandedChange');
   };
 
   VPAIDAd.prototype.collapseAd = function() {
+    this.expanded = false;
     this._emitEvent('AdExpandedChange');
   };
+
+  VPAIDAd.prototype.skipAd = function() {
+    this._emitEvent('AdSkipped');
+  };
+
+  VPAIDAd.prototype.resizeAd = function(width, height, viewMode) {
+    this.width = width;
+    this.height = height;
+    var c = document.getElementById('vpaid-ad-container');
+    if (c) {
+      c.style.width = width + 'px';
+      c.style.height = height + 'px';
+    }
+    this._emitEvent('AdSizeChange');
+  };
+
+  /*** VPAID GETTERS ***/
+
+  VPAIDAd.prototype.getAdDuration = function() {
+    return this.videoSlot && this.videoSlot.duration ? this.videoSlot.duration : 0;
+  };
+
+  VPAIDAd.prototype.getAdRemainingTime = function() {
+    return this.videoSlot && this.videoSlot.currentTime !== undefined
+      ? Math.max(0, (this.videoSlot.duration || 0) - this.videoSlot.currentTime)
+      : 0;
+  };
+
+  VPAIDAd.prototype.getAdExpanded = function() {
+    return this.expanded;
+  };
+
+  VPAIDAd.prototype.getAdSkippableState = function() {
+    return this.skippableState;
+  };
+
+  VPAIDAd.prototype.getAdWidth = function() {
+    return this.width;
+  };
+
+  VPAIDAd.prototype.getAdHeight = function() {
+    return this.height;
+  };
+
+  VPAIDAd.prototype.getAdIcons = function() {
+    return [];
+  };
+
+  /*** SUBSCRIBE/UNSUBSCRIBE ***/
 
   VPAIDAd.prototype.subscribe = function(eventType, callback) {
     this.events[eventType] = this.events[eventType] || [];
@@ -116,10 +163,12 @@
     }
   };
 
+  /*** INTERNAL ***/
   VPAIDAd.prototype._emitEvent = function(eventType) {
     (this.events[eventType] || []).forEach(function(cb) { cb(); });
   };
 
+  // Expose factory
   window.getVPAIDAd = function() {
     return new VPAIDAd();
   };
