@@ -12,7 +12,6 @@
   }
 
   /*** VPAID REQUIRED INTERFACE ***/
-
   VPAIDAd.prototype.handshakeVersion = function(version) {
     return '2.0';
   };
@@ -38,23 +37,40 @@
       height: height + 'px',
       zIndex: '9999',
       backgroundSize: 'cover',
-      backgroundImage: 'url(http://background.jpg)'
+      backgroundPosition: 'center',
+      backgroundImage: 'url(https://photos.fife.usercontent.google.com/pw/AP1GczMJfsmcghwd2XsO3TBdnp92X_Z-gIua_U4XAAcM-HIDUwrmMBZ1CMGA)'
     });
 
+    // Bottom container for input and button
+    var bottomBar = document.createElement('div');
+    Object.assign(bottomBar.style, {
+      position: 'absolute',
+      bottom: '20px',
+      left: '0',
+      width: '100%',
+      textAlign: 'center'
+    });
+
+    // Input prompt
     var input = document.createElement('textarea');
     input.id = 'vpaid-input';
-    input.placeholder = 'Describe your perfect burger';
+    input.placeholder = 'describe your perfect burger';
     Object.assign(input.style, {
-      width: '80%',
-      margin: '20px auto',
-      display: 'block'
+      width: '60%',
+      maxWidth: '80%',
+      display: 'inline-block',
+      padding: '8px',
+      fontSize: '14px',
+      boxSizing: 'border-box'
     });
 
+    // Submit button
     var button = document.createElement('button');
     button.textContent = 'Submit';
     Object.assign(button.style, {
-      display: 'block',
-      margin: '10px auto'
+      marginLeft: '8px',
+      padding: '8px 12px',
+      fontSize: '14px'
     });
 
     button.addEventListener('click', function() {
@@ -63,7 +79,7 @@
       if (container.parentNode) container.parentNode.removeChild(container);
 
       // Load & play test video
-      var testSrc = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
+      var testSrc = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
       this.videoSlot.src = testSrc;
       this.videoSlot.load();
       this.videoSlot.play();
@@ -76,8 +92,9 @@
       }.bind(this));
     }.bind(this));
 
-    container.appendChild(input);
-    container.appendChild(button);
+    bottomBar.appendChild(input);
+    bottomBar.appendChild(button);
+    container.appendChild(bottomBar);
     if (this.slot) this.slot.appendChild(container);
   };
 
@@ -128,11 +145,9 @@
   };
 
   /*** VPAID GETTERS/SETTERS ***/
-
   VPAIDAd.prototype.getAdDuration = function() {
     return this.videoSlot && !isNaN(this.videoSlot.duration)
-      ? this.videoSlot.duration
-      : 0;
+      ? this.videoSlot.duration : 0;
   };
 
   VPAIDAd.prototype.getAdRemainingTime = function() {
@@ -175,16 +190,13 @@
   };
 
   /*** OVERRIDDEN SUBSCRIBE & UNSUBSCRIBE ***/
-
   VPAIDAd.prototype.subscribe = function(arg1, arg2, arg3) {
     var eventType, callback, context;
-    // wrapper-style: subscribe(callback, eventName, context)
     if (typeof arg1 === 'function' && typeof arg2 === 'string') {
       callback  = arg1;
       eventType = arg2;
       context   = arg3 || this;
     } else {
-      // creative-style: subscribe(eventType, callback)
       eventType = arg1;
       callback  = arg2;
       context   = this;
@@ -211,7 +223,6 @@
   };
 
   /*** INTERNAL ***/
-
   VPAIDAd.prototype._emitEvent = function(eventType) {
     (this.events[eventType] || []).forEach(function(fn) { fn(); });
   };
