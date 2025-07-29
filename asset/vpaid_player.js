@@ -1,177 +1,173 @@
-// vpaid_player.js
-(function(window) {
-  // VPAID creative object
-  function VPAIDAd() {
-    this.events = {};
-    this.slot = null;
-    this.videoSlot = null;
-    this.width = 0;
-    this.height = 0;
-    this.expanded = false;
-    this.skippableState = false;
+// VPAIDWrapper.js
+
+var VPAIDWrapper = function (VPAIDCreative) {
+  this._creative = VPAIDCreative;
+  if (!this.checkVPAIDInterface(VPAIDCreative)) {
+    console.error("VPAIDCreative doesn't conform to the VPAID spec");
+    return;
   }
+  this.setCallbacksForCreative();
+};
 
-  /*** VPAID REQUIRED INTERFACE ***/
-  VPAIDAd.prototype.handshakeVersion = function(version) {
-    return '2.0';
+VPAIDWrapper.prototype.checkVPAIDInterface = function (creative) {
+  return !!(creative.handshakeVersion && typeof creative.handshakeVersion === 'function' &&
+    creative.initAd      && typeof creative.initAd      === 'function' &&
+    creative.startAd     && typeof creative.startAd     === 'function' &&
+    creative.stopAd      && typeof creative.stopAd      === 'function' &&
+    creative.skipAd      && typeof creative.skipAd      === 'function' &&
+    creative.resizeAd    && typeof creative.resizeAd    === 'function' &&
+    creative.pauseAd     && typeof creative.pauseAd     === 'function' &&
+    creative.resumeAd    && typeof creative.resumeAd    === 'function' &&
+    creative.expandAd    && typeof creative.expandAd    === 'function' &&
+    creative.collapseAd  && typeof creative.collapseAd  === 'function' &&
+    creative.subscribe   && typeof creative.subscribe   === 'function' &&
+    creative.unsubscribe && typeof creative.unsubscribe === 'function');
+};
+
+VPAIDWrapper.prototype.setCallbacksForCreative = function () {
+  var callbacks = {
+    AdLoaded:                 this.onAdLoaded,
+    AdStarted:                this.onStartAd,
+    AdImpression:             this.onAdImpression,
+    AdVideoStart:             this.onAdVideoStart,
+    AdVideoFirstQuartile:     this.onAdVideoFirstQuartile,
+    AdVideoMidpoint:          this.onAdVideoMidpoint,
+    AdVideoThirdQuartile:     this.onAdVideoThirdQuartile,
+    AdVideoComplete:          this.onAdVideoComplete,
+    AdPaused:                 this.onAdPaused,
+    AdPlaying:                this.onAdPlaying,
+    AdStopped:                this.onStopAd,
+    AdSkipped:                this.onSkipAd,
+    AdError:                  this.onAdError,
+    AdSizeChange:             this.onAdSizeChange,
+    AdExpandedChange:         this.onAdExpandedChange,
+    AdSkippableStateChange:   this.onAdSkippableStateChange,
+    AdDurationChange:         this.onAdDurationChange,
+    AdRemainingTimeChange:    this.onAdRemainingTimeChange,
+    AdVolumeChange:           this.onAdVolumeChange,
+    AdClickThru:              this.onAdClickThru,
+    AdInteraction:            this.onAdInteraction,
+    AdUserAcceptInvitation:   this.onAdUserAcceptInvitation,
+    AdUserMinimize:           this.onAdUserMinimize,
+    AdUserClose:              this.onAdUserClose,
+    AdLog:                    this.onAdLog,
+    AdLinearChange:           this.onAdLinearChange
   };
 
-  VPAIDAd.prototype.initAd = function(width, height, viewMode, desiredBitrate, creativeData, environmentVars) {
-    this.width = width;
-    this.height = height;
-    this.slot = environmentVars.slot || environmentVars.adSlot;
-    this.videoSlot = environmentVars.videoSlot;
+  // Use the creative's subscribe(eventType, callback) signature:
+  for (var eventName in callbacks) {
+    this._creative.subscribe(
+      eventName,
+      callbacks[eventName].bind(this)
+    );
+  }
+};
 
-    // Emit AdLoaded asynchronously so wrapper can subscribe first
-    setTimeout(function() {
-      this._emitEvent('AdLoaded');
-    }.bind(this), 0);
+// Pass-throughs
+VPAIDWrapper.prototype.initAd = function (w, h, vm, db, cd, env) {
+  this._creative.initAd(w, h, vm, db, cd, env);
+};
+VPAIDWrapper.prototype.startAd = function () {
+  console.log('startAd');
+  this._creative.startAd();
+};
+VPAIDWrapper.prototype.pauseAd = function () { this._creative.pauseAd(); };
+VPAIDWrapper.prototype.resumeAd = function () { this._creative.resumeAd(); };
+VPAIDWrapper.prototype.expandAd = function () { this._creative.expandAd(); };
+VPAIDWrapper.prototype.collapseAd = function () { this._creative.collapseAd(); };
+VPAIDWrapper.prototype.skipAd = function () { this._creative.skipAd(); };
+VPAIDWrapper.prototype.stopAd = function () { this._creative.stopAd(); };
+VPAIDWrapper.prototype.resizeAd = function (w, h, vm) { this._creative.resizeAd(w, h, vm); };
+VPAIDWrapper.prototype.setAdVolume = function (v) { this._creative.setAdVolume(v); };
+VPAIDWrapper.prototype.getAdVolume = function () { return this._creative.getAdVolume(); };
+VPAIDWrapper.prototype.getAdExpanded = function () { return this._creative.getAdExpanded(); };
+VPAIDWrapper.prototype.getAdSkippableState = function () { return this._creative.getAdSkippableState(); };
+VPAIDWrapper.prototype.getAdLinear = function () { return this._creative.getAdLinear(); };
+VPAIDWrapper.prototype.getAdRemainingTime = function () { return this._creative.getAdRemainingTime(); };
+VPAIDWrapper.prototype.getAdDuration = function () { return this._creative.getAdDuration(); };
+VPAIDWrapper.prototype.getAdWidth = function () { return this._creative.getAdWidth(); };
+VPAIDWrapper.prototype.getAdHeight = function () { return this._creative.getAdHeight(); };
 
-    // Create interactive container
-    var container = document.createElement('div');
-    container.id = 'vpaid-ad-container';
-    Object.assign(container.style, {
-      position: 'absolute', top: '0', left: '0',
-      width: width + 'px', height: height + 'px', zIndex: '9999',
-      backgroundSize: 'cover', backgroundImage: 'url(http://background.jpg)'
-    });
+// Event callbacks
+VPAIDWrapper.prototype.onAdLoaded = function () {
+  console.log('ad has been loaded');
+};
+VPAIDWrapper.prototype.onStartAd = function () {
+  console.log('Ad has started');
+};
+VPAIDWrapper.prototype.onAdImpression = function () {
+  console.log('Ad Impression');
+};
+VPAIDWrapper.prototype.onAdVideoStart = function () {
+  console.log('Video 0% completed');
+};
+VPAIDWrapper.prototype.onAdVideoFirstQuartile = function () {
+  console.log('Video 25% completed');
+};
+VPAIDWrapper.prototype.onAdVideoMidpoint = function () {
+  console.log('Video 50% completed');
+};
+VPAIDWrapper.prototype.onAdVideoThirdQuartile = function () {
+  console.log('Video 75% completed');
+};
+VPAIDWrapper.prototype.onAdVideoComplete = function () {
+  console.log('Video 100% completed');
+};
+VPAIDWrapper.prototype.onAdPaused = function () {
+  console.log('onAdPaused');
+};
+VPAIDWrapper.prototype.onAdPlaying = function () {
+  console.log('onAdPlaying');
+};
+VPAIDWrapper.prototype.onSkipAd = function () {
+  console.log('Ad was skipped');
+};
+VPAIDWrapper.prototype.onStopAd = function () {
+  console.log('Ad has stopped');
+};
+VPAIDWrapper.prototype.onAdError = function (msg) {
+  console.log('onAdError: ' + msg);
+};
+VPAIDWrapper.prototype.onAdLog = function (msg) {
+  console.log('onAdLog: ' + msg);
+};
+VPAIDWrapper.prototype.onAdSizeChange = function () {
+  console.log('Ad size changed to: w=' + this.getAdWidth() + ' h=' + this.getAdHeight());
+};
+VPAIDWrapper.prototype.onAdExpandedChange = function () {
+  console.log('Ad Expanded Changed to: ' + this.getAdExpanded());
+};
+VPAIDWrapper.prototype.onAdSkippableStateChange = function () {
+  console.log('Ad Skippable State Changed to: ' + this.getAdSkippableState());
+};
+VPAIDWrapper.prototype.onAdDurationChange = function () {
+  console.log('Ad Duration Changed to: ' + this.getAdDuration());
+};
+VPAIDWrapper.prototype.onAdRemainingTimeChange = function () {
+  console.log('Ad Remaining Time Changed to: ' + this.getAdRemainingTime());
+};
+VPAIDWrapper.prototype.onAdVolumeChange = function () {
+  console.log('Ad Volume has changed to - ' + this.getAdVolume());
+};
+VPAIDWrapper.prototype.onAdClickThru = function (url, id, hc) {
+  console.log('Clickthrough portion of the ad was clicked:', url);
+};
+VPAIDWrapper.prototype.onAdInteraction = function (id) {
+  console.log('A non-clickthrough event has occurred:', id);
+};
+VPAIDWrapper.prototype.onAdUserAcceptInvitation = function () {
+  console.log('AdUserAcceptInvitation');
+};
+VPAIDWrapper.prototype.onAdUserMinimize = function () {
+  console.log('AdUserMinimize');
+};
+VPAIDWrapper.prototype.onAdUserClose = function () {
+  console.log('AdUserClose');
+};
+VPAIDWrapper.prototype.onAdLinearChange = function () {
+  console.log('Ad linear has changed: ' + this.getAdLinear());
+};
 
-    // Input prompt
-    var input = document.createElement('textarea');
-    input.id = 'vpaid-input';
-    input.placeholder = 'Describe your perfect burger';
-    Object.assign(input.style, { width: '80%', margin: '20px auto', display: 'block' });
-
-    // Submit button
-    var button = document.createElement('button');
-    button.textContent = 'Submit';
-    Object.assign(button.style, { display: 'block', margin: '10px auto' });
-
-    button.addEventListener('click', function() {
-      if (!input.value) return;
-      if (container.parentNode) container.parentNode.removeChild(container);
-
-      // Load test MP4
-      var testSrc = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
-      this.videoSlot.src = testSrc;
-      this.videoSlot.load();
-      this.videoSlot.play();
-
-      this._emitEvent('AdVideoStart');
-      this.videoSlot.addEventListener('ended', function() {
-        this._emitEvent('AdVideoComplete');
-        this.stopAd();
-      }.bind(this));
-    }.bind(this));
-
-    container.appendChild(input);
-    container.appendChild(button);
-    if (this.slot) this.slot.appendChild(container);
-  };
-
-  VPAIDAd.prototype.startAd = function() {
-    this._emitEvent('AdImpression');
-    this._emitEvent('AdStarted');
-  };
-
-  VPAIDAd.prototype.stopAd = function() {
-    var c = document.getElementById('vpaid-ad-container');
-    if (c && c.parentNode) c.parentNode.removeChild(c);
-    this._emitEvent('AdStopped');
-  };
-
-  VPAIDAd.prototype.pauseAd = function() {
-    if (this.videoSlot) this.videoSlot.pause();
-    this._emitEvent('AdPaused');
-  };
-
-  VPAIDAd.prototype.resumeAd = function() {
-    if (this.videoSlot) this.videoSlot.play();
-    this._emitEvent('AdPlaying');
-  };
-
-  VPAIDAd.prototype.expandAd = function() {
-    this.expanded = true;
-    this._emitEvent('AdExpandedChange');
-  };
-
-  VPAIDAd.prototype.collapseAd = function() {
-    this.expanded = false;
-    this._emitEvent('AdExpandedChange');
-  };
-
-  VPAIDAd.prototype.skipAd = function() {
-    this._emitEvent('AdSkipped');
-  };
-
-  VPAIDAd.prototype.resizeAd = function(width, height) {
-    this.width = width;
-    this.height = height;
-    var c = document.getElementById('vpaid-ad-container');
-    if (c) {
-      c.style.width = width + 'px';
-      c.style.height = height + 'px';
-    }
-    this._emitEvent('AdSizeChange');
-  };
-
-  /*** GETTERS/SETTERS ***/
-  VPAIDAd.prototype.getAdDuration = function() {
-    return this.videoSlot && this.videoSlot.duration ? this.videoSlot.duration : 0;
-  };
-  VPAIDAd.prototype.getAdRemainingTime = function() {
-    if (!this.videoSlot || typeof this.videoSlot.currentTime !== 'number') return 0;
-    return Math.max(0, (this.videoSlot.duration || 0) - this.videoSlot.currentTime);
-  };
-  VPAIDAd.prototype.getAdLinear = function() { return true; };
-  VPAIDAd.prototype.getAdExpanded = function() { return this.expanded; };
-  VPAIDAd.prototype.getAdSkippableState = function() { return this.skippableState; };
-  VPAIDAd.prototype.getAdWidth = function() { return this.width; };
-  VPAIDAd.prototype.getAdHeight = function() { return this.height; };
-  VPAIDAd.prototype.getAdVolume = function() { return this.videoSlot ? this.videoSlot.volume : 1; };
-  VPAIDAd.prototype.setAdVolume = function(v) { if (this.videoSlot) this.videoSlot.volume = v; };
-  VPAIDAd.prototype.getAdIcons = function() { return []; };
-  VPAIDAd.prototype.getAdCompanions = function() { return ''; };
-
-  /*** OVERRIDDEN SUBSCRIBE ***/ & UNSUBSCRIBE ***/
-  VPAIDAd.prototype.subscribe = function(arg1, arg2, arg3) {
-    var eventType, callback, context;
-    // wrapper-style: subscribe(callback, eventName, context)
-    if (typeof arg1 === 'function' && typeof arg2 === 'string') {
-      callback  = arg1;
-      eventType = arg2;
-      context   = arg3 || this;
-    } else {
-      // creative-style: subscribe(eventType, callback)
-      eventType = arg1;
-      callback  = arg2;
-      context   = this;
-    }
-    this.events[eventType] = this.events[eventType] || [];
-    this.events[eventType].push(callback.bind(context));
-  };
-
-  VPAIDAd.prototype.unsubscribe = function(arg1, arg2, arg3) {
-    var eventType, callback;
-    if (typeof arg1 === 'function' && typeof arg2 === 'string') {
-      callback  = arg1;
-      eventType = arg2;
-    } else {
-      eventType = arg1;
-      callback  = arg2;
-    }
-    var handlers = this.events[eventType] || [];
-    for (var i = handlers.length - 1; i >= 0; i--) {
-      // compare original callback reference
-      if (handlers[i] === callback) handlers.splice(i, 1);
-    }
-  };
-
-  /*** INTERNAL ***/
-  VPAIDAd.prototype._emitEvent = function(eventType) {
-    (this.events[eventType] || []).forEach(function(fn) { fn(); });
-  };
-
-  // Expose factory
-  window.getVPAIDAd = function() { return new VPAIDAd(); };
-})(window);
+// Usage example:
+// var wrapper = new VPAIDWrapper(window.getVPAIDAd());
+// wrapper.initAd(640, 360, 'normal', 500, creativeData, { slot: adSlotElement, videoSlot: videoElement });
