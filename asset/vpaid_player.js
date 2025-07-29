@@ -63,7 +63,7 @@
       if (container.parentNode) container.parentNode.removeChild(container);
 
       // Load & play test video
-      var testSrc = 'http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
+      var testSrc = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
       this.videoSlot.src = testSrc;
       this.videoSlot.load();
       this.videoSlot.play();
