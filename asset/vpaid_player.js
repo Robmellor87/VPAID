@@ -38,7 +38,7 @@
       zIndex: '9999',
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      backgroundImage: 'url(https://photos.fife.usercontent.google.com/pw/AP1GczMJfsmcghwd2XsO3TBdnp92X_Z-gIua_U4XAAcM-HIDUwrmMBZ1CMGA)'
+      backgroundImage: 'url(https://image-zd3n.onrender.com/truck.jpg)'
     });
 
     // Bottom container for input and button
